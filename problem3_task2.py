@@ -15,7 +15,7 @@ model = pyo.ConcreteModel()
 # Declare sets 
 load_demand = [30, 20, 20, 30, 50, 80, 100, 140, 120, 100, 90, 80, 70, 80, 120, 160, 220, 200, 180, 160, 120, 100, 80, 40]
 
-modes = ["coal", "gas", "nuclear", "biomass"]
+modes = ["coal", "gas", "battery"] # "nuclear", "biomass"]
 model.modes = pyo.Set(initialize=modes)
 
 hours = [i for i, load in enumerate(load_demand)]
@@ -27,30 +27,37 @@ model.load_demand = pyo.Param(model.hours, initialize=load_demand)
 costs_fixed = {
     "coal": 200,
     "gas": 500,
-    "nuclear": 800,
-    "biomass": 1000
+    # "nuclear": 800,
+    # "biomass": 1000,
+    "battery": 50
     }
 model.costs_fixed = pyo.Param(model.hours, model.modes, initialize=lambda model, hour, mode: costs_fixed[mode], domain=pyo.NonNegativeReals)  
 
 costs_variable = {
     "coal": 60,
     "gas": 100,
-    "nuclear": 120,
-    "biomass": 150
+    # "nuclear": 120,
+    # "biomass": 150,
+    "battery": 20
 }
 model.costs_variable = pyo.Param(model.hours, model.modes, initialize=lambda model, hour, mode: costs_variable[mode], domain=pyo.NonNegativeReals)  
 
 max_limits = {
     "coal": 120,
     "gas": 200,
-    "nuclear": 50,
-    "biomass": 30
+    # "nuclear": 50,
+    # "biomass": 30,
+    "battery": 25
 }
 model.max_limits = pyo.Param(model.hours, model.modes, initialize=lambda model, hour, mode: max_limits[mode], domain=pyo.NonNegativeReals)
+
+model.QDischargeMax = pyo.Param(initialize=25)
 
 
 # Declare model variables
 model.power_producers = pyo.Var(model.hours, model.modes, within=pyo.NonNegativeReals)
+
+model.QDischarge = pyo.Var(model.hours, within=pyo.NonNegativeReals)
 
 # Declare objective
 def objective(model):
@@ -65,14 +72,22 @@ def production_limits(model, hour, mode):
     return  model.power_producers[hour, mode] <= model.max_limits[hour, mode]
 model.production_limit_constraint = pyo.Constraint(model.hours, model.modes, rule=production_limits)
 
+def q_discharge_limit(model, hour):
+    return model.QDischarge[hour] <= model.QDischargeMax
+model.q_discharge_limit = pyo.Constraint(model.hours, rule=q_discharge_limit)
 
 def demand(model, hour):
-    return sum(model.power_producers[hour, mode] for mode in model.modes) == model.load_demand[hour]
+    return sum(model.power_producers[hour, mode] for mode in model.modes) == model.load_demand[hour] + model.QDischarge[hour]
 model.demand_constraint = pyo.Constraint(model.hours, rule=demand)
 
 # Solve the model
 opt = pyo.SolverFactory("glpk")
-opt.solve(model, load_solutions=True)
+results = opt.solve(model, load_solutions=True)
+
+
+model.display()
+print(results.solver.status)
+print(results.solver.termination_condition)
 
 # Generate output 
 output = [pyo.value(model.power_producers[key]) for key in model.power_producers]
@@ -85,3 +100,6 @@ output_dict =  {
 df = pd.DataFrame(output_dict)
 df.plot(kind="bar", stacked=True)
 plt.savefig("problem3_task2.png")
+
+
+# %%
