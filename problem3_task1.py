@@ -30,7 +30,7 @@ costs_fixed = {
     "nuclear": 800,
     "biomass": 1000
     }
-model.costs_fixed = pyo.Param(model.hours, model.modes, initialize=lambda model, hour, mode: costs_fixed[mode], domain=pyo.NonNegativeReals)  
+model.costs_fixed = pyo.Param(model.modes, model.hours, initialize=lambda model, mode, hour: costs_fixed[mode], domain=pyo.NonNegativeReals)  
 
 costs_variable = {
     "coal": 60,
@@ -38,7 +38,7 @@ costs_variable = {
     "nuclear": 120,
     "biomass": 150
 }
-model.costs_variable = pyo.Param(model.hours, model.modes, initialize=lambda model, hour, mode: costs_variable[mode], domain=pyo.NonNegativeReals)  
+model.costs_variable = pyo.Param(model.modes, model.hours, initialize=lambda model, mode, hour: costs_variable[mode], domain=pyo.NonNegativeReals)  
 
 max_limits = {
     "coal": 120,
@@ -46,28 +46,28 @@ max_limits = {
     "nuclear": 50,
     "biomass": 30
 }
-model.max_limits = pyo.Param(model.hours, model.modes, initialize=lambda model, hour, mode: max_limits[mode], domain=pyo.NonNegativeReals)
+model.max_limits = pyo.Param(model.modes, model.hours, initialize=lambda model, mode, hour: max_limits[mode], domain=pyo.NonNegativeReals)
 
 
 # Declare model variables
-model.power_producers = pyo.Var(model.hours, model.modes, within=pyo.NonNegativeReals)
+model.power_producers = pyo.Var(model.modes, model.hours, within=pyo.NonNegativeReals)
 
 # Declare objective
 def objective(model):
     return sum(
-        sum(model.costs_fixed[hour, key] + model.costs_variable[hour, key] * model.power_producers[hour, key] for key in model.modes)
+        sum(model.costs_fixed[mode, hour] + model.costs_variable[mode, hour] * model.power_producers[mode, hour] for mode in model.modes)
         for hour in model.hours)
 
 model.objective = pyo.Objective(rule=objective, sense=pyo.minimize) 
 
 # Declare constraints
-def production_limits(model, hour, mode):
-    return  model.power_producers[hour, mode] <= model.max_limits[hour, mode]
-model.production_limit_constraint = pyo.Constraint(model.hours, model.modes, rule=production_limits)
+def production_limits(model, mode, hour):
+    return  model.power_producers[mode, hour] <= model.max_limits[mode, hour]
+model.production_limit_constraint = pyo.Constraint(model.modes, model.hours, rule=production_limits)
 
 
 def demand(model, hour):
-    return sum(model.power_producers[hour, mode] for mode in model.modes) == model.load_demand[hour]
+    return sum(model.power_producers[mode, hour] for mode in model.modes) == model.load_demand[hour]
 model.demand_constraint = pyo.Constraint(model.hours, rule=demand)
 
 # Solve the model
@@ -75,12 +75,14 @@ opt = pyo.SolverFactory("glpk")
 opt.solve(model, load_solutions=True)
 
 # Generate output 
+model.display()
 output = [pyo.value(model.power_producers[key]) for key in model.power_producers]
+print(output)
 output_dict =  {
-    "coal": output[0::4],
-    "gas": output[1::4],
-    "nuclear": output[2::4],
-    "biomass": output[3::4]
+    "coal": output[0:24],
+    "gas": output[24:48],
+    "nuclear": output[48:72],
+    "biomass": output[72:96]
 }
 df = pd.DataFrame(output_dict)
 df.plot(kind="bar", stacked=True)
