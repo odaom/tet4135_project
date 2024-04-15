@@ -82,8 +82,13 @@ for i, load in enumerate(load_demand):
         "biomass": pyo.value(model.power_producers['biomass'])
         })
 
+total_cost = 0
+for sol in solution:
+    total_cost += sol["cost"]
+
 
 df = pd.DataFrame(solution, columns=modes)
 
 df.plot(kind="bar", stacked=True)
 plt.savefig("problem3_task1.png")
+print(total_cost)
