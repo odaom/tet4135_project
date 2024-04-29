@@ -144,8 +144,13 @@ state_of_charge = [pyo.value(model.SOC[hour]) for hour in model.hours]
 charge_quantity = [pyo.value(model.Ein[hour]) for hour in model.hours]
 discharge_quantity = [pyo.value(model.Eout[hour]) for hour in model.hours]
 df = pd.DataFrame(output_dict)
+
 df.plot(kind="bar", stacked=True)
-plt.plot(state_of_charge, color="purple")
+plt.plot(state_of_charge, color="magenta", label="SOC")
+plt.title("Hourly production in a day, including State of Charge (SOC)")
+plt.xlabel("Time [h]")
+plt.ylabel("Generation [MW] / SOC [MWh]")
+plt.legend()
 plt.savefig("problem3_task2.png")
 
 
