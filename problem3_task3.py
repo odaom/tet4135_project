@@ -1,13 +1,6 @@
-"""Proyect Energy planning"""
-# -*- coding utf-8 -*-
-#Sergio, Eugenia, Oscar and Oda
-#15/04/24
-#%%
 import pyomo.environ as pyo
-from pyomo.opt import SolverFactory
 import pandas as pd
 import matplotlib.pyplot as plt
-#%%
 
 # Declare the model
 model = pyo.ConcreteModel()
@@ -29,7 +22,7 @@ costs_fixed = {
     "gas": 500,
     "nuclear": 800,
     "biomass": 1000
-    }
+}
 model.costs_fixed = pyo.Param(model.hours, model.modes, initialize=lambda model, hour, mode: costs_fixed[mode], domain=pyo.NonNegativeReals)  
 
 costs_variable = {
@@ -48,7 +41,6 @@ max_limits = {
 }
 model.max_limits = pyo.Param(model.hours, model.modes, initialize=lambda model, hour, mode: max_limits[mode], domain=pyo.NonNegativeReals)
 
-
 co2_emissions = { # tons of CO2 per MWh energy produced
     "coal": 1.5,
     "gas": 0.2,
@@ -58,7 +50,7 @@ co2_emissions = { # tons of CO2 per MWh energy produced
 model.co2_emissions = pyo.Param(model.hours, model.modes, initialize=lambda model, hour, mode: co2_emissions[mode], domain=pyo.NonNegativeReals)
 
 cost_co2 = 60  # [EUR/ton CO2]
-model.cost_co2 = pyo.Param(model.hours, initialize=cost_co2)
+model.cost_co2 = pyo.Param(model.hours, initialize=cost_co2, mutable=True)
 
 # Declare model variables
 model.power_production = pyo.Var(model.hours, model.modes, within=pyo.NonNegativeReals)
@@ -75,32 +67,73 @@ model.objective = pyo.Objective(rule=objective, sense=pyo.minimize)
 
 # Declare constraints
 def production_limits(model, hour, mode):
-    return  model.power_production[hour, mode] <= model.max_limits[hour, mode]
-model.production_limit_constraint = pyo.Constraint(model.hours, model.modes, rule=production_limits)
+    return model.power_production[hour, mode] <= model.max_limits[hour, mode]
 
+model.production_limit_constraint = pyo.Constraint(model.hours, model.modes, rule=production_limits)
 
 def demand(model, hour):
     return sum(model.power_production[hour, mode] for mode in model.modes) == model.load_demand[hour]
+
 model.demand_constraint = pyo.Constraint(model.hours, rule=demand)
-
-
 
 # Solve the model
 opt = pyo.SolverFactory("glpk")
 opt.solve(model, load_solutions=True)
 
-# model.display()
-# print(pyo.value(model.power_production["coal"]))
-print(list(model.power_production))
 # Generate output 
-output = [pyo.value(model.power_production[hour, mode]) for hour, mode in model.power_production]
-print(output)
-output_dict =  {
-    "coal": output[0::4],
-    "gas": output[1::4],
-    "nuclear": output[2::4],
-    "biomass": output[3::4]
-}
-df = pd.DataFrame(output_dict)
+output = {hour: {mode: pyo.value(model.power_production[hour, mode]) for mode in model.modes} for hour in model.hours}
+df = pd.DataFrame(output)
+
+# Plot the power production profile
 df.plot(kind="bar", stacked=True)
+plt.title("Optimal Power Production Profile")
+plt.xlabel("Time [h]")
+plt.ylabel("Generation [MW]")
+plt.xticks(rotation=0)
 plt.savefig("problem3_task3.png")
+
+# Plot the hourly CO2 emissions
+hourly_co2_emissions = [sum(model.co2_emissions[hour, mode] * pyo.value(model.power_production[hour, mode]) for mode in model.modes) for hour in model.hours]
+
+plt.figure()
+plt.plot(model.hours, hourly_co2_emissions, marker='o')
+plt.title("Hourly CO2 Emissions")
+plt.xlabel("Hour")
+plt.ylabel("CO2 Emissions [tons]")
+plt.grid(True)
+plt.xticks(model.hours)
+plt.savefig("hourly_co2_emissions.png")
+
+# Calculate total CO2 emissions
+total_co2_emissions = sum(hourly_co2_emissions)
+print("Total CO2 emissions:", total_co2_emissions, "tons")
+# Sensitivity analysis
+co2_costs_range = range(10, 131, 20)
+total_costs = []
+
+for co2_cost in co2_costs_range:
+    for hour in model.hours:
+        model.cost_co2[hour] = co2_cost
+        
+        # Solve the model
+    print([pyo.value(model.cost_co2[hour]) for hour in model.hours])
+    opt.solve(model, load_solutions=True)
+    
+    # Calculate the total operation cost (objective function value)
+    total_cost = pyo.value(model.objective)
+    total_costs.append(total_cost)
+    
+    
+   
+# Plot the sensitivity analysis results for CO2 emissions cost variation
+plt.figure()
+plt.plot(co2_costs_range, total_costs, marker='o')
+plt.title("Sensitivity Analysis of Total Operation Cost for CO2 Emissions Cost Variation")
+plt.xlabel("Cost of CO2 Emissions [EUR/ton CO2]")
+plt.ylabel("Total Operation Cost [EUR]")
+plt.grid(True)
+plt.savefig("co2_cost_sensitivity_analysis.png")
+
+# Display the sensitivity analysis results
+for co2_cost, total_cost in zip(co2_costs_range, total_costs):
+    print(f"Cost of CO2 Emissions: {co2_cost} EUR/ton CO2, Total Operation Cost: {total_cost} EUR")
