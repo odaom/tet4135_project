@@ -55,9 +55,6 @@ model.max_limits = pyo.Param(model.hours, model.modes, initialize=lambda model, 
 model.battery_rate_max = pyo.Param(initialize=25, doc="Max power flow in or out [MW]")
 model.battery_storage_max = pyo.Param(initialize=100, doc='Max storage (MWh)')
 
-
- 
-
 # Declare model variables
 model.power_producers = pyo.Var(model.hours, model.modes, within=pyo.NonNegativeReals)
 
@@ -82,10 +79,6 @@ model.objective = pyo.Objective(rule=objective, sense=pyo.minimize)
 def production_limits(model, hour, mode):
     return model.power_producers[hour, mode] <= model.max_limits[hour, mode]
 model.production_limit_constraint = pyo.Constraint(model.hours, model.modes, rule=production_limits)
-
-# def q_discharge_limit(model, hour):
-#     return model.QDischarge[hour] <= model.battery_rate_max
-# model.q_discharge_limit = pyo.Constraint(model.hours, rule=q_discharge_limit)
 
 def demand(model, hour):
     return sum(model.power_producers[hour, mode] for mode in model.modes) == model.load_demand[hour] + model.Ein[hour]
@@ -118,36 +111,15 @@ def battery_starts_empty(model, hours):
     return model.SOC[0] == 0 
 model.battery_starts_empty = pyo.Constraint(model.hours, rule=battery_starts_empty)
 
-
-
-# model.C1 = pyo.ConstraintList()
+model.C1 = pyo.ConstraintList()
 model.C2 = pyo.ConstraintList()
 model.C3 = pyo.ConstraintList()
-# model.C4 = pyo.ConstraintList()
-model.C5 = pyo.ConstraintList()
-# model.C6 = pyo.ConstraintList()
-model.C7 = pyo.ConstraintList()
-
+model.C4 = pyo.ConstraintList()
 for hour in model.hours:
-    
-    # model.C1.add(model.QEl[hour] * model.EtaCharge ==  model.QCharge[hour])   
-
-    # model.C2.add(model.QDischarge[t] * model.EtaDischarge ==  Demand[t])   
-    model.C2.add(model.Eout[hour] == model.power_producers[hour, "battery"])
-          
-    model.C3.add(model.charge_this_hour[hour] + model.discharge_this_hour[hour] <= 1)
-    
-    # model.C4.add(model.Ein[hour] >= model.PMinCharge*model.Charge[hour])
-                 
-    model.C5.add(model.Ein[hour] <= model.battery_rate_max * model.charge_this_hour[hour])
-    
-    # model.C6.add(model.QDischarge[hour] >= model.PMinDischarge*model.Discharge[hour])
-    
-    model.C7.add(model.Eout[hour] <= model.battery_rate_max * model.discharge_this_hour[hour])
-
-# def NoCharge2(model, t):
-#     return model.Charge[t] == 0
-# model.C11 = pyo.Constraint(no_charge_zone, rule=NoCharge2)
+    model.C1.add(model.Eout[hour] == model.power_producers[hour, "battery"])
+    model.C2.add(model.charge_this_hour[hour] + model.discharge_this_hour[hour] <= 1)
+    model.C3.add(model.Ein[hour] <= model.battery_rate_max * model.charge_this_hour[hour])
+    model.C4.add(model.Eout[hour] <= model.battery_rate_max * model.discharge_this_hour[hour])
 
 
 # Solve the model
@@ -168,15 +140,13 @@ output_dict =  {
     "biomass": output[3::5],
     "battery": output[4::5]
 }
-SOC = [pyo.value(model.SOC[hour]) for hour in model.hours]
+state_of_charge = [pyo.value(model.SOC[hour]) for hour in model.hours]
 charge_quantity = [pyo.value(model.Ein[hour]) for hour in model.hours]
 discharge_quantity = [pyo.value(model.Eout[hour]) for hour in model.hours]
 df = pd.DataFrame(output_dict)
 df.plot(kind="bar", stacked=True)
-plt.plot(SOC, color="purple")
-plt.bar(hours, charge_quantity, color="red")
-plt.bar(hours, discharge_quantity, color="magenta")
-plt.savefig("problem3_task2_bar_plot.png")
+plt.plot(state_of_charge, color="purple")
+plt.savefig("problem3_task2.png")
 
 
 # %%
