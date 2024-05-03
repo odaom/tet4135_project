@@ -83,5 +83,15 @@ output_dict =  {
     "biomass": output[3::4]
 }
 df = pd.DataFrame(output_dict)
-df.plot(kind="bar", stacked=True)
+
+df.columns = pd.CategoricalIndex(df.columns.values, ordered=True, categories=["biomass", "nuclear", "coal", "gas"])
+df = df.sort_index(axis=1)
+bar = df.plot.bar(stacked=True, color=["C3", "C2", "C0", "C1"])
+
+plt.title("Optimal production profile (updated cost function parameters)")
+plt.xlabel("Time [h]")
+plt.ylabel("Generation [MW]")
+plt.legend()
+
+
 plt.savefig("problem3_task5.png")

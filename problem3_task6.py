@@ -43,8 +43,9 @@ model.costs_variable = pyo.Param(model.hours, model.modes, initialize=lambda mod
 max_limits = {
     "coal": [120] * len(hours),
     "gas": [200] * len(hours),
-    "wind": [32, 51, 19, 25, 19, 4, 2, 1, 0, 0, 0, 0, 2, 4, 9, 1, 41, 32, 14, 14, 19, 32, 32, 41],
-    "solar": [0, 0, 0, 0, 2, 5, 8, 10, 12, 15, 18, 22, 25, 28, 30, 30, 30, 25, 20, 15, 10, 5, 0, 0]  
+            #  0   1   2   3   4  5  6   7   8   9  10  11  12  13  14  15  16  17  18  19  20  21  22  23
+    "wind":  [32, 51, 19, 25, 19, 4, 2,  1,  0,  0,  0,  0,  2,  4,  9,  1, 41, 32, 14, 14, 19, 32, 32, 41],
+    "solar": [ 0,  0,  0,  0,  2, 5, 8, 10, 12, 15, 18, 22, 25, 28, 30, 30, 30, 25, 20, 15, 10, 5, 0, 0]  
 }
 model.max_limits = pyo.Param(model.hours, model.modes, initialize=lambda model, hour, mode: max_limits[mode][hour], domain=pyo.NonNegativeReals)
 
@@ -85,5 +86,14 @@ output_dict =  {
     "solar": output[3::4]
 }
 df = pd.DataFrame(output_dict)
-df.plot(kind="bar", stacked=True)
+
+df.columns = pd.CategoricalIndex(df.columns.values, ordered=True, categories=["coal", "solar", "wind", "gas"])
+df = df.sort_index(axis=1)
+bar = df.plot.bar(stacked=True, color=["C0", "C6", "C8", "C1"])
+
+plt.title("Optimal production profile (with variable wind and solar power)")
+plt.xlabel("Time [h]")
+plt.ylabel("Generation [MW]")
+plt.legend()
+
 plt.savefig("problem3_task6.png")

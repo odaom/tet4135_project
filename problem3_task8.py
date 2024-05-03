@@ -85,5 +85,15 @@ output_dict =  {
     "solar": output[3::4]
 }
 df = pd.DataFrame(output_dict)
-df.plot(kind="bar", stacked=True)
+
+
+df.columns = pd.CategoricalIndex(df.columns.values, ordered=True, categories=["coal", "solar", "wind", "gas"])
+df = df.sort_index(axis=1)
+bar = df.plot.bar(stacked=True, color=["C0", "C6", "C8", "C1"])
+
+plt.title("Optimal production profile (modified wind production at t=17)")
+plt.xlabel("Time [h]")
+plt.ylabel("Generation [MW]")
+plt.legend()
+
 plt.savefig("problem3_task8.png")

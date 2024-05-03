@@ -119,7 +119,7 @@ model.display()
 
 
 # Generate output 
-output = [pyo.value(model.power_production[key]) for key in model.power_production]
+output = [pyo.value(model.power_production[key]) * pyo.value(model.production_unit_count[key[1]]) for key in model.power_production]
 output_dict =  {
     "coal": output[0::5],
     "gas": output[1::5],
@@ -128,5 +128,14 @@ output_dict =  {
     "wind2": output[4::5]
 }
 df = pd.DataFrame(output_dict)
-df.plot(kind="bar", stacked=True)
+
+df.columns = pd.CategoricalIndex(df.columns.values, ordered=True, categories=["coal", "solar", "wind2", "wind", "gas"])
+df = df.sort_index(axis=1)
+bar = df.plot.bar(stacked=True, color=["C0", "C6", "C9", "C8", "C1"])
+
+plt.title("Optimal production profile (with optimal sizing of wind power plants)")
+plt.xlabel("Time [h]")
+plt.ylabel("Generation [MW]")
+plt.legend()
+
 plt.savefig("problem3_task9.png")

@@ -79,7 +79,6 @@ opt.solve(model, load_solutions=True)
 model.display()
 
 # Generate output 
-# print(list(model.power_producers))
 output = [pyo.value(model.power_producers[key]) for key in model.power_producers]
 print(output)
 output_dict =  {
@@ -89,7 +88,16 @@ output_dict =  {
     "solar": output[3::5],
     "wind2": output[4::5]
 }
-# print(output_dict)
+
 df = pd.DataFrame(output_dict)
-df.plot(kind="bar", stacked=True)
+
+df.columns = pd.CategoricalIndex(df.columns.values, ordered=True, categories=["coal", "solar", "wind", "wind2", "gas"])
+df = df.sort_index(axis=1)
+bar = df.plot.bar(stacked=True, color=["C0", "C6", "C8", "C9", "C1"])
+
+plt.title("Optimal production profile (with solar and two wind plants)")
+plt.xlabel("Time [h]")
+plt.ylabel("Generation [MW]")
+plt.legend()
+
 plt.savefig("problem3_task7.png")
