@@ -1,132 +1,84 @@
-"""Proyect Energy planning 2"""
-# -*- coding utf-8 -*-
-#15/04/24
-#%%
 import math
 import matplotlib.pyplot as plt
 import numpy as np
-"""""""""""""""""""""""""""""
-         TASK 1
 
-"""""""""""""""""""""""""""""
-"""ASSIGMENT 9"""
-"New fast charging stations properties"
-#Charging station consumption
-P_ch_car=0.055 #MW
-#Number of charging stations
-N_ch_points=52
+# New fast charging stations properties:
+P_ch_car = 0.055  # [MW] Charging station consumption
+N_ch_points = 52  # Number of charging stations
 
-"Demand before fast charging stations"
-#Peak consumption WITHOUT taking into account cars charging consumption
-Power_peak=3.5 #MW
-#Valley consumption WITHOUT taking into account cars charging consumption
-Power_valley=1.25 #MW
-#Energy price for peak consumption
-Price_peak= 325 #NOK/MWh
-#Energy price for valley consumption
-Price_valley= 210 #NOK/MWh
-#Number of peak hours
-h_peak= 6 #h
-#Number of valley hours
-h_valley= 18 #h
+# Demand before fast charging stations:
+Power_peak = 3.5      # [MW] Peak consumption WITHOUT taking into account cars charging consumption
+Power_valley = 1.25   # [MW] Valley consumption WITHOUT taking into account cars charging consumption
+Price_peak = 325      # [NOK/MWh] Energy price for peak consumption
+Price_valley = 210    # [NOK/MWh] Energy price for valley consumption
+h_peak = 6            # [h] Number of peak hours
+h_valley= 18          # [h] Number of valley hours
 
-"Line properties"
-#Cross section of the cable
-A_25= 25 #mm^2
-#Length of the line
-L= 8 #km
-#Resistivity of the line
-Resistivity= 18 #ohm*mm^2/km
-#Maximum current of the line
-I_max_25= 255 #A
-#Voltage of the power line
-U= 0.01000 #MV
-#Resistance of the line
-R_25=L*Resistivity/A_25 #ohm
-#Power of the line
-Power_line_max= math.sqrt(3)*U*I_max_25 #MW
-
-"""
-Problem 1
-"""
-# Show that the maximum power demand (after installing the fast charging stations) is higher than the maximum power transport capacity for the line.
-
-Power_cars= P_ch_car * N_ch_points #MW
-Power_load_peak= Power_cars + Power_peak #MW
-Power_excess= Power_load_peak-Power_line_max #MW
-
-"""
-Problem 2
-"""
-#Use marginal analysis to decide which of the two overhead lines you would select. 
-"Properties of both lines"
-#Lifetime
-n=20 #Years
-#Discount rate
-r=0.085
-
-"Line FeAl75"
-#Cross section of the cable
-A_75= 60 #mm^2
-#Maximum current
-I_max_75=424 #A
-#Investment cost
-F_75= 750000 #NOK/km
-
-"Line FeAl90"
-#Cross section of the cable
-A_90= 90 #mm^2
-#Maximum current
-I_max_90=485 #A
-#Investment cost
-F_90= 900000 #NOK/km
-
-#Annuity calculation
-E= r/(1-(1+r)**(-n))
-
-"Calculation of the annual total cost for FeAl75"
-#Annual investment cost
-f_75= F_75*L*E #NOK
-
-#Line losses
-R_75=L*Resistivity/A_75  #omhs  
-
-#Losses during peak and off-peak hours
-P_loss_peak_75= (R_75*(10**-6)*Power_load_peak**2)/U**2  #MW ( 10^-6 to convert omhs to mega omhs)
-P_loss_valley_75= R_75*(10**-6)*Power_valley**2/U**2     #MW  
-
-#Annual cost of losses
-o_75=365*(Price_peak*P_loss_peak_75*h_peak+Price_valley*P_loss_valley_75*h_valley) #noks
-
-#Annual total cost
-c_75=f_75+o_75  #NOKS
+#Line properties:
+A_25 = 25                                     # [mm^2] Cross section of the cable
+L = 8                                         # [km] Length of the line
+Resistivity = 18                              # [ohm*mm^2/km] Resistivity of the line
+I_max_25 = 255                                # [A] Maximum current of the line
+U = 0.01000                                   # [MV] Voltage of the power line
+R_25 = L * Resistivity / A_25                 # [ohm] Resistance of the line
+Power_line_max = math.sqrt(3) * U * I_max_25  # [MW] Power of the line
 
 
-"Calculation of the annual total cost for FeAl75"
-#Annual investment cost
-f_90= F_90*L*E #NOK
 
-#Line losses
-R_90=L*Resistivity/A_90
+# 1: "Show that the maximum power demand (after installing the fast charging stations) is higher than the maximum power transport capacity for the line."
+Power_cars = P_ch_car * N_ch_points              # [MW]
+Power_load_peak = Power_cars + Power_peak        # [MW]
+Power_excess = Power_load_peak - Power_line_max  # [MW]
 
-#Losses during peak and off-peak hours
-P_loss_peak_90= R_90*(10**-6)*Power_load_peak**2/U**2
-P_loss_valley_90= R_90*(10**-6)*Power_valley**2/U**2 
 
-#Annual total cost of losses
-o_90=365 * (Price_peak * P_loss_peak_90 * h_peak + Price_valley * P_loss_valley_90 * h_valley)
+# 2: "Use marginal analysis to decide which of the two overhead lines you would select."
 
-#Annual total cost
-c_90 = f_90 + o_90
+# Properties of both lines:
+n = 20     # [years] #Lifetime
+r = 0.085  # Discount rate
 
-"""
-Problem 3
-"""
-#a)Use the data given for the 60 mm^2 and 90 mm^2 lines to express the investment cost as a linear function of the cross-section.
+# Line FeAl75:
+A_75 = 60      # [mm^2] Cross section of the cable
+I_max_75 = 424 # [A] Maximum current
+F_75 = 750000  # [NOK/km] Investment cost
 
-#The linear function of the investment cost will be defined as F=a + bx [NOK/km]
-#Using linearization
-b=(F_90-F_75)/(A_90-A_75)
+# Line FeAl90:
+A_90 = 90       # [mm^2] Cross section of the cable
+I_max_90 = 485  # [A] Maximum current
+F_90 = 900000   # [NOK/km] Investment cost
+
+# Annuity calculation:
+E = r / (1 - (1 + r) ** (-n)) 
+
+# Calculation of the annual total cost for FeAl75:
+f_75 = F_75 * L * E            # [NOK] Annual investment cost
+R_75 = L * Resistivity / A_75  # [omhs] Line losses
+
+# Losses during peak and off-peak hours
+P_loss_peak_75 = (R_75 * (10**-6) * Power_load_peak**2) / U**2  # [MW] (10^-6 to convert omhs to mega omhs)
+P_loss_valley_75 = R_75 * (10**-6) * Power_valley**2 / U**2     # [MW]  
+
+o_75 = 365 * (Price_peak * P_loss_peak_75 * h_peak + Price_valley * P_loss_valley_75 * h_valley)  # [NOK] Annual cost of losses
+c_75 = f_75 + o_75  # [NOK] Annual total cost
+
+
+# Calculation of the annual total cost for FeAl90:
+f_90 = F_90 * L * E  # [NOK] Annual investment cost
+R_90 = L * Resistivity / A_90 # [ohms] Line losses
+
+# Losses during peak and off-peak hours
+P_loss_peak_90 = R_90 * (10**-6) * Power_load_peak**2 / U**2
+P_loss_valley_90 = R_90 * (10**-6) * Power_valley**2 / U**2 
+
+o_90 = 365 * (Price_peak * P_loss_peak_90 * h_peak + Price_valley * P_loss_valley_90 * h_valley)  # [NOK] Annual total cost of losses
+c_90 = f_90 + o_90  # [NOK] Annual total cost
+
+# Problem 3
+# a) Use the data given for the 60 mm^2 and 90 mm^2 lines to express the investment cost as a linear function of the cross-section.
+
+# The linear function of the investment cost will be defined as F=a + bx [NOK/km]
+# Using linearization
+b = (F_90-F_75)/(A_90-A_75)
 
 a=F_90-b*A_90
 
@@ -173,16 +125,11 @@ P_ch=Power_load_peak-P_disch-Power_valley
 #The total battery capacity will be given by:
 E_bat=h_valley*P_ch*efficiency_ch
 
-
-
 print()
 print("TASK 1")
 print()
 print("a)")
 print("Total battery capacity needed:", E_bat, "MWh")
-
-
-
 
 
 """
@@ -323,20 +270,3 @@ plt.title('Peak price sensitivity')
 plt.grid(True)
 plt.show()
 
-
-
-
-
-
-
-
-# %%
-
-
-
-
-
-
-
-
-# %%
